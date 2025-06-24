@@ -13,18 +13,32 @@ class TrackingScreen extends StatefulWidget {
 
 class _TrackingScreenState extends State<TrackingScreen> {
   final _foodNameController = TextEditingController();
+  final _brandController = TextEditingController();
+  final _amountController = TextEditingController();
   final _caloriesController = TextEditingController();
   final _proteinController = TextEditingController();
   final _carbsController = TextEditingController();
   final _fatController = TextEditingController();
   
   MealType _selectedMealType = MealType.breakfast;
+  // Fixed: Made fields final since they don't change
+  final String _selectedCategory = 'other';
+  final String _selectedServingSize = '100g';
+  
   final _databaseService = DatabaseService();
   final _authService = AuthService();
 
   @override
+  void initState() {
+    super.initState();
+    _amountController.text = '100';
+  }
+
+  @override
   void dispose() {
     _foodNameController.dispose();
+    _brandController.dispose();
+    _amountController.dispose();
     _caloriesController.dispose();
     _proteinController.dispose();
     _carbsController.dispose();
@@ -33,50 +47,97 @@ class _TrackingScreenState extends State<TrackingScreen> {
   }
 
   Future<void> _addMeal() async {
-    if (_foodNameController.text.isEmpty || _caloriesController.text.isEmpty) {
+    if (_foodNameController.text.isEmpty || 
+        _amountController.text.isEmpty ||
+        _caloriesController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in required fields')),
       );
       return;
     }
 
-    final food = FoodModel(
-      id: '',
-      name: _foodNameController.text,
+    // Create nutrition info
+    final nutritionInfo = NutritionInfo(
       calories: double.tryParse(_caloriesController.text) ?? 0,
       protein: double.tryParse(_proteinController.text) ?? 0,
       carbs: double.tryParse(_carbsController.text) ?? 0,
       fat: double.tryParse(_fatController.text) ?? 0,
     );
 
-    final meal = MealModel(
-      id: '',
-      userId: _authService.currentUser!.uid,
-      foods: [food],
-      mealType: _selectedMealType,
-      date: DateTime.now(),
-      totalCalories: food.calories,
-      totalProtein: food.protein,
-      totalCarbs: food.carbs,
-      totalFat: food.fat,
+    // Create food model
+    final food = FoodModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: _foodNameController.text,
+      brand: _brandController.text,
+      category: _selectedCategory,
+      nutritionPer100g: nutritionInfo,
+      servingSizes: ['100g', '1 porsi'],
+      isCustom: true,
+      createdBy: _authService.currentUser?.uid,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
 
-    await _databaseService.addMeal(meal);
+    // Create food entry
+    final foodEntry = FoodEntry.create(
+      food: food,
+      amount: double.tryParse(_amountController.text) ?? 100,
+      servingSize: _selectedServingSize,
+    );
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Meal added successfully!')),
-      );
-      _clearForm();
+    // Create meal
+    final meal = MealModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      userId: _authService.currentUser!.uid,
+      date: DateTime.now(),
+      mealType: _selectedMealType,
+      foods: [foodEntry],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    try {
+      await _databaseService.addMeal(meal);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Meal added successfully!')),
+        );
+        _clearForm();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
   void _clearForm() {
     _foodNameController.clear();
+    _brandController.clear();
+    _amountController.clear();
     _caloriesController.clear();
     _proteinController.clear();
     _carbsController.clear();
     _fatController.clear();
+    setState(() {
+      _amountController.text = '100';
+    });
+  }
+
+  IconData _getMealIcon(MealType type) {
+    switch (type) {
+      case MealType.breakfast:
+        return Icons.free_breakfast;
+      case MealType.lunch:
+        return Icons.lunch_dining;
+      case MealType.dinner:
+        return Icons.dinner_dining;
+      case MealType.snack:
+        return Icons.cookie;
+    }
   }
 
   @override
@@ -102,35 +163,75 @@ class _TrackingScreenState extends State<TrackingScreen> {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _foodNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Food Name *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.restaurant),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: _foodNameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Food Name *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.restaurant),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _brandController,
+                            decoration: const InputDecoration(
+                              labelText: 'Brand',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<MealType>(
-                      value: _selectedMealType,
-                      decoration: const InputDecoration(
-                        labelText: 'Meal Type',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.schedule),
-                      ),
-                      items: MealType.values.map((type) {
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Text(type.toString().split('.').last),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedMealType = value!;
-                        });
-                      },
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<MealType>(
+                            value: _selectedMealType,
+                            decoration: const InputDecoration(
+                              labelText: 'Meal Type',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.schedule),
+                            ),
+                            items: MealType.values.map((type) {
+                              return DropdownMenuItem(
+                                value: type,
+                                child: Text('${type.icon} ${type.displayName}'),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedMealType = value!;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _amountController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Amount (g) *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.scale),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
+                    Text(
+                      'Nutrition per ${_amountController.text.isEmpty ? "100" : _amountController.text}g',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
@@ -144,7 +245,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: TextField(
                             controller: _proteinController,
@@ -158,7 +259,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
@@ -172,7 +273,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: TextField(
                             controller: _fatController,
@@ -209,7 +310,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
             ),
             const SizedBox(height: 10),
             StreamBuilder<List<MealModel>>(
-              stream: _databaseService.getTodayMeals(_authService.currentUser?.uid ?? ''),
+              stream: _databaseService.streamMealsToday(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -230,15 +331,19 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   itemCount: snapshot.data!.length,
                   itemBuilder: (context, index) {
                     final meal = snapshot.data![index];
+                    final nutrition = meal.totalNutrition;
+                    
                     return Card(
                       child: ListTile(
                         leading: Icon(_getMealIcon(meal.mealType)),
-                        title: Text(meal.foods.first.name),
+                        title: Text(meal.foods.isNotEmpty 
+                            ? meal.foods.first.food.name 
+                            : 'Meal'),
                         subtitle: Text(
-                          '${meal.mealType.toString().split('.').last} - ${meal.totalCalories} kcal',
+                          '${meal.mealTimeDisplay} - ${nutrition.calories.toStringAsFixed(0)} kcal',
                         ),
                         trailing: Text(
-                          'P: ${meal.totalProtein.toStringAsFixed(1)}g',
+                          'P: ${nutrition.protein.toStringAsFixed(1)}g',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ),
@@ -251,18 +356,5 @@ class _TrackingScreenState extends State<TrackingScreen> {
         ),
       ),
     );
-  }
-
-  IconData _getMealIcon(MealType type) {
-    switch (type) {
-      case MealType.breakfast:
-        return Icons.free_breakfast;
-      case MealType.lunch:
-        return Icons.lunch_dining;
-      case MealType.dinner:
-        return Icons.dinner_dining;
-      case MealType.snack:
-        return Icons.cookie;
-    }
   }
 }

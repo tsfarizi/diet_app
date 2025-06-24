@@ -25,7 +25,7 @@ class DatabaseService {
           .get();
 
       if (doc.exists) {
-        return UserModel.fromFirestore(doc);
+        return UserModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
       }
       return null;
     } catch (e) {
@@ -82,12 +82,12 @@ class DatabaseService {
       QuerySnapshot snapshot = await _firestore
           .collection('foods')
           .where('name', isGreaterThanOrEqualTo: query.toLowerCase())
-          .where('name', isLessThanOrEqualTo: query.toLowerCase() + '\uf8ff')
+          .where('name', isLessThanOrEqualTo: '${query.toLowerCase()}\uf8ff')
           .limit(20)
           .get();
 
       List<FoodModel> foods = snapshot.docs
-          .map((doc) => FoodModel.fromFirestore(doc))
+          .map((doc) => FoodModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
 
       // Also search user's custom foods if authenticated
@@ -97,12 +97,12 @@ class DatabaseService {
             .doc(_currentUserId!)
             .collection('custom_foods')
             .where('name', isGreaterThanOrEqualTo: query.toLowerCase())
-            .where('name', isLessThanOrEqualTo: query.toLowerCase() + '\uf8ff')
+            .where('name', isLessThanOrEqualTo: '${query.toLowerCase()}\uf8ff')
             .limit(10)
             .get();
 
         List<FoodModel> customFoods = customSnapshot.docs
-            .map((doc) => FoodModel.fromFirestore(doc))
+            .map((doc) => FoodModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
             .toList();
 
         foods.addAll(customFoods);
@@ -124,7 +124,7 @@ class DatabaseService {
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        return FoodModel.fromFirestore(snapshot.docs.first);
+        return FoodModel.fromFirestore(snapshot.docs.first.data() as Map<String, dynamic>, snapshot.docs.first.id);
       }
       return null;
     } catch (e) {
@@ -142,7 +142,7 @@ class DatabaseService {
           .get();
 
       return snapshot.docs
-          .map((doc) => FoodModel.fromFirestore(doc))
+          .map((doc) => FoodModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
     } catch (e) {
       throw 'Failed to get popular foods: $e';
@@ -159,7 +159,7 @@ class DatabaseService {
           .get();
 
       return snapshot.docs
-          .map((doc) => FoodModel.fromFirestore(doc))
+          .map((doc) => FoodModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
     } catch (e) {
       throw 'Failed to get foods by category: $e';
@@ -179,7 +179,7 @@ class DatabaseService {
           .get();
 
       return snapshot.docs
-          .map((doc) => FoodModel.fromFirestore(doc))
+          .map((doc) => FoodModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
     } catch (e) {
       throw 'Failed to get user custom foods: $e';
@@ -256,7 +256,7 @@ class DatabaseService {
           .get();
 
       return snapshot.docs
-          .map((doc) => MealModel.fromFirestore(doc))
+          .map((doc) => MealModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
     } catch (e) {
       throw 'Failed to get meals for date: $e';
@@ -278,7 +278,7 @@ class DatabaseService {
           .get();
 
       return snapshot.docs
-          .map((doc) => MealModel.fromFirestore(doc))
+          .map((doc) => MealModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
     } catch (e) {
       throw 'Failed to get meals for date range: $e';
@@ -295,15 +295,16 @@ class DatabaseService {
       double totalCarbs = 0;
       double totalFat = 0;
       double totalFiber = 0;
-      double totalWater = 0;
+      double totalSugar = 0;
 
       for (MealModel meal in meals) {
-        totalCalories += meal.totalCalories;
-        totalProtein += meal.totalProtein;
-        totalCarbs += meal.totalCarbs;
-        totalFat += meal.totalFat;
-        totalFiber += meal.totalFiber;
-        totalWater += meal.waterIntake;
+        NutritionInfo nutrition = meal.totalNutrition;
+        totalCalories += nutrition.calories;
+        totalProtein += nutrition.protein;
+        totalCarbs += nutrition.carbs;
+        totalFat += nutrition.fat;
+        totalFiber += nutrition.fiber;
+        totalSugar += nutrition.sugar;
       }
 
       return {
@@ -312,7 +313,7 @@ class DatabaseService {
         'carbs': totalCarbs,
         'fat': totalFat,
         'fiber': totalFiber,
-        'water': totalWater,
+        'sugar': totalSugar,
       };
     } catch (e) {
       throw 'Failed to get nutrition summary: $e';
@@ -393,7 +394,7 @@ class DatabaseService {
       for (QueryDocumentSnapshot doc in snapshot.docs) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         if (data['foodData'] != null) {
-          foods.add(FoodModel.fromMap(data['foodData']));
+          foods.add(FoodModel.fromFirestore(data['foodData'] as Map<String, dynamic>, doc.id));
         }
       }
 
@@ -422,7 +423,7 @@ class DatabaseService {
     }
   }
 
-  // ==================== UTILITIES ====================
+  // ==================== STREAMS AND REAL-TIME DATA ====================
 
   // Stream for real-time meals today
   Stream<List<MealModel>> streamMealsToday() {
@@ -441,8 +442,8 @@ class DatabaseService {
         .orderBy('date', descending: false)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => MealModel.fromFirestore(doc))
-            .toList());
+        .map((doc) => MealModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
+        .toList());
   }
 
   // Stream for user profile
@@ -453,6 +454,23 @@ class DatabaseService {
         .collection('users')
         .doc(_currentUserId!)
         .snapshots()
-        .map((doc) => doc.exists ? UserModel.fromFirestore(doc) : null);
+        .map((doc) => doc.exists ? UserModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id) : null);
+  }
+
+  // ==================== CONVENIENCE METHODS ====================
+
+  // Convenience method for tracking screen
+  Stream<List<MealModel>> getTodayMeals(String userId) {
+    return streamMealsToday();
+  }
+
+  // Convenience method for profile screen  
+  Future<UserModel?> getUser(String userId) async {
+    return getUserProfile();
+  }
+
+  // Convenience method for profile screen
+  Future<void> updateUser(UserModel user) async {
+    return updateUserProfile(user);
   }
 }

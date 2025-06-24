@@ -12,7 +12,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  final _authService = AuthService();
+  // Removed unused _authService field
 
   final List<Widget> _pages = [
     const DashboardPage(),

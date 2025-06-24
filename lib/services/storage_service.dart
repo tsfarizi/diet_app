@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:path/path.dart' as path;
+import 'package:flutter/foundation.dart';
 
 class StorageService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -13,13 +14,13 @@ class StorageService {
 
   // ==================== PROFILE IMAGES ====================
 
-  // Upload user profile picture
-  Future<String> uploadProfilePicture(File imageFile) async {
+  // Upload user profile picture - FIXED METHOD NAME
+  Future<String?> uploadProfilePicture(String userId, File imageFile) async {
     try {
       if (_currentUserId == null) throw 'User not authenticated';
 
       String fileName = 'profile_${_currentUserId}_${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
-      
+
       Reference ref = _storage
           .ref()
           .child('profile_pictures')
@@ -40,13 +41,16 @@ class StorageService {
 
       // Wait for upload to complete
       TaskSnapshot snapshot = await uploadTask;
-      
+
       // Get download URL
       String downloadUrl = await snapshot.ref.getDownloadURL();
-      
+
       return downloadUrl;
     } catch (e) {
-      throw 'Failed to upload profile picture: $e';
+      if (kDebugMode) {
+        print('Failed to upload profile picture: $e');
+      }
+      return null;
     }
   }
 
@@ -61,14 +65,16 @@ class StorageService {
           .child(_currentUserId!);
 
       ListResult result = await profileDir.listAll();
-      
+
       // Delete all old profile pictures
       for (Reference ref in result.items) {
         await ref.delete();
       }
     } catch (e) {
       // Ignore errors when deleting old files
-      print('Error deleting old profile pictures: $e');
+      if (kDebugMode) {
+        print('Error deleting old profile pictures: $e');
+      }
     }
   }
 
@@ -79,9 +85,9 @@ class StorageService {
     try {
       if (_currentUserId == null) throw 'User not authenticated';
 
-      String fileName = customName ?? 
+      String fileName = customName ??
           'food_${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
-      
+
       Reference ref = _storage
           .ref()
           .child('food_images')
@@ -103,21 +109,21 @@ class StorageService {
 
       TaskSnapshot snapshot = await uploadTask;
       String downloadUrl = await snapshot.ref.getDownloadURL();
-      
+
       return downloadUrl;
     } catch (e) {
       throw 'Failed to upload food image: $e';
     }
   }
 
-  // Upload meal photo (for food diary)
+  // Upload meal photo (for food diary) - FIXED DUPLICATE DEFINITION
   Future<String> uploadMealPhoto(File imageFile, String mealType, DateTime date) async {
     try {
       if (_currentUserId == null) throw 'User not authenticated';
 
       String dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       String fileName = 'meal_${mealType}_${dateStr}_${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
-      
+
       Reference ref = _storage
           .ref()
           .child('meal_photos')
@@ -141,7 +147,7 @@ class StorageService {
 
       TaskSnapshot snapshot = await uploadTask;
       String downloadUrl = await snapshot.ref.getDownloadURL();
-      
+
       return downloadUrl;
     } catch (e) {
       throw 'Failed to upload meal photo: $e';
@@ -157,7 +163,7 @@ class StorageService {
 
       String sanitizedName = foodName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
       String fileName = 'custom_${sanitizedName}_${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
-      
+
       Reference ref = _storage
           .ref()
           .child('custom_foods')
@@ -179,7 +185,7 @@ class StorageService {
 
       TaskSnapshot snapshot = await uploadTask;
       String downloadUrl = await snapshot.ref.getDownloadURL();
-      
+
       return downloadUrl;
     } catch (e) {
       throw 'Failed to upload custom food image: $e';
@@ -194,7 +200,9 @@ class StorageService {
       Reference ref = _storage.refFromURL(downloadUrl);
       await ref.delete();
     } catch (e) {
-      print('Error deleting file: $e');
+      if (kDebugMode) {
+        print('Error deleting file: $e');
+      }
       // Don't throw error, as file might already be deleted
     }
   }
@@ -205,7 +213,7 @@ class StorageService {
       if (_currentUserId == null) return;
 
       String dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      
+
       Reference dateDir = _storage
           .ref()
           .child('meal_photos')
@@ -213,12 +221,14 @@ class StorageService {
           .child(dateStr);
 
       ListResult result = await dateDir.listAll();
-      
+
       for (Reference ref in result.items) {
         await ref.delete();
       }
     } catch (e) {
-      print('Error deleting meal photos for date: $e');
+      if (kDebugMode) {
+        print('Error deleting meal photos for date: $e');
+      }
     }
   }
 
@@ -298,17 +308,17 @@ class StorageService {
       if (_currentUserId == null) return;
 
       DateTime cutoffDate = DateTime.now().subtract(Duration(days: daysOld));
-      
+
       // This is a basic cleanup - in production, you'd want more sophisticated cleanup
       // based on metadata timestamps and user preferences
-      
+
       Reference userRoot = _storage.ref().child('temp').child(_currentUserId!);
       ListResult result = await userRoot.listAll();
-      
+
       for (Reference ref in result.items) {
         try {
           FullMetadata metadata = await ref.getMetadata();
-          if (metadata.timeCreated != null && 
+          if (metadata.timeCreated != null &&
               metadata.timeCreated!.isBefore(cutoffDate)) {
             await ref.delete();
           }
@@ -318,7 +328,9 @@ class StorageService {
         }
       }
     } catch (e) {
-      print('Error during cleanup: $e');
+      if (kDebugMode) {
+        print('Error during cleanup: $e');
+      }
     }
   }
 
@@ -326,26 +338,26 @@ class StorageService {
 
   // Upload with progress tracking
   Future<String> uploadWithProgress(
-    File file,
-    String path,
-    Function(double)? onProgress,
-  ) async {
+      File file,
+      String path,
+      Function(double)? onProgress,
+      ) async {
     try {
       if (_currentUserId == null) throw 'User not authenticated';
 
       Reference ref = _storage.ref().child(path);
-      
+
       UploadTask uploadTask = ref.putFile(file);
-      
+
       // Listen to progress if callback provided
       if (onProgress != null) {
         uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-          double progress = snapshot.bytesTransferred.toDouble() / 
-                           snapshot.totalBytes.toDouble();
+          double progress = snapshot.bytesTransferred.toDouble() /
+              snapshot.totalBytes.toDouble();
           onProgress(progress);
         });
       }
-      
+
       TaskSnapshot snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
@@ -362,13 +374,17 @@ class StorageService {
           await ref.delete();
         } catch (e) {
           // Continue with other files if one fails
-          print('Error deleting file $url: $e');
+          if (kDebugMode) {
+            print('Error deleting file $url: $e');
+          }
         }
       }).toList();
-      
+
       await Future.wait(deleteTasks);
     } catch (e) {
-      print('Error in batch delete: $e');
+      if (kDebugMode) {
+        print('Error in batch delete: $e');
+      }
     }
   }
 }

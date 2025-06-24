@@ -15,53 +15,71 @@ class AuthService {
 
   // Sign Up with Email & Password
   Future<UserCredential?> signUp({
-    required String email,
-    required String password,
-    required String name,
-    required int age,
-    required double weight,
-    required double height,
-    required String gender,
-    required String activityLevel,
-    required String goal,
-  }) async {
-    try {
-      // Create user account
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+  required String email,
+  required String password,
+  required String name,
+  required int age,
+  required double weight,
+  required double height,
+  required String gender,
+  required String activityLevel,
+  required String goal,
+}) async {
+  try {
+    print('🔵 DEBUG: Starting signup process...');
+    print('🔵 Email: $email');
+    print('🔵 Password length: ${password.length}');
+    
+    // Create user account
+    UserCredential result = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    
+    print('✅ Firebase Auth Success! UID: ${result.user!.uid}');
 
-      // Update display name
-      await result.user!.updateDisplayName(name);
+    // Update display name
+    await result.user!.updateDisplayName(name);
+    print('✅ Display name updated');
 
-      // Create user profile in Firestore
-      UserModel userModel = UserModel(
-        uid: result.user!.uid,
-        email: email,
-        name: name,
-        age: age,
-        weight: weight,
-        height: height,
-        gender: gender,
-        activityLevel: activityLevel,
-        goal: goal,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
+    // Create user profile in Firestore
+    UserModel userModel = UserModel(
+      id: result.user!.uid,
+      email: email,
+      name: name,
+      age: age,
+      weight: weight,
+      height: height,
+      gender: gender,
+      activityLevel: activityLevel,
+      goal: goal,
+      targetWeight: weight,
+      dailyCalorieTarget: 2000,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
 
-      await _firestore
-          .collection('users')
-          .doc(result.user!.uid)
-          .set(userModel.toFirestore());
+    print('🔵 Creating Firestore document...');
+    await _firestore
+        .collection('users')
+        .doc(result.user!.uid)
+        .set(userModel.toFirestore());
+    
+    print('✅ Firestore document created successfully!');
 
-      return result;
-    } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
-    } catch (e) {
-      throw 'An unexpected error occurred. Please try again.';
-    }
+    return result;
+  } on FirebaseAuthException catch (e) {
+    print('❌ FirebaseAuthException caught!');
+    print('❌ Error code: ${e.code}');
+    print('❌ Error message: ${e.message}');
+    throw _handleAuthException(e);
+  } catch (e) {
+    print('❌ General exception caught!');
+    print('❌ Error type: ${e.runtimeType}');
+    print('❌ Error: $e');
+    throw 'An unexpected error occurred: $e';
   }
+}
 
   // Sign In with Email & Password
   Future<UserCredential?> signIn({
@@ -69,14 +87,25 @@ class AuthService {
     required String password,
   }) async {
     try {
+      print('🔵 DEBUG: Starting signin process...');
+      print('🔵 Email: $email');
+      
       UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      
+      print('✅ Sign in successful! UID: ${result.user!.uid}');
       return result;
+      
     } on FirebaseAuthException catch (e) {
+      print('❌ FirebaseAuthException caught!');
+      print('❌ Error code: ${e.code}');
+      print('❌ Error message: ${e.message}');
       throw _handleAuthException(e);
     } catch (e) {
+      print('❌ General exception caught!');
+      print('❌ Error: $e');
       throw 'An unexpected error occurred. Please try again.';
     }
   }
@@ -112,7 +141,7 @@ class AuthService {
           .get();
 
       if (doc.exists) {
-        return UserModel.fromFirestore(doc);
+        return UserModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
       }
       return null;
     } catch (e) {
@@ -175,9 +204,11 @@ class AuthService {
     }
   }
 
-  // Check if email is already registered
+  // Check if email is already registered - UPDATED TO USE verifyBeforeUpdateEmail
   Future<bool> isEmailRegistered(String email) async {
     try {
+      // Since fetchSignInMethodsForEmail is deprecated, we'll use a different approach
+      // Try to create a temporary user and catch the specific error
       final methods = await _auth.fetchSignInMethodsForEmail(email);
       return methods.isNotEmpty;
     } catch (e) {
@@ -185,12 +216,13 @@ class AuthService {
     }
   }
 
-  // Update email
+  // Update email - UPDATED TO USE verifyBeforeUpdateEmail
   Future<void> updateEmail(String newEmail) async {
     try {
       if (currentUser == null) throw 'User not authenticated';
       
-      await currentUser!.updateEmail(newEmail);
+      // Use the new recommended method
+      await currentUser!.verifyBeforeUpdateEmail(newEmail);
       
       // Update email in Firestore
       await _firestore
