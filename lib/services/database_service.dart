@@ -442,7 +442,7 @@ class DatabaseService {
         .orderBy('date', descending: false)
         .snapshots()
         .map((snapshot) => snapshot.docs
-        .map((doc) => MealModel.fromFirestore(doc.data() as Map<String, dynamic>, doc.id))
+        .map((doc) => MealModel.fromFirestore(doc.data(), doc.id))
         .toList());
   }
 

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../services/auth_service.dart';
 import '../../services/storage_service.dart';
-import '../../services/database_service.dart';
 import '../../models/user_model.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -14,9 +13,9 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final AuthService _authService = AuthService(); // Fixed: Remove unused field warning
+  final AuthService _authService = AuthService();
   final StorageService _storageService = StorageService();
-  final DatabaseService _databaseService = DatabaseService(); // Fixed: Remove unused field warning
+  // REMOVED: Unused _databaseService field
   
   final _nameController = TextEditingController();
   final _ageController = TextEditingController();
@@ -56,7 +55,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     } catch (e) {
-      // Fixed: Replace print with debugPrint for production code
       debugPrint('Error loading user data: $e');
     }
   }
@@ -78,7 +76,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       String? photoUrl;
       if (_imageFile != null) {
-        // Fixed: Updated method call to match StorageService
         photoUrl = await _storageService.uploadProfilePicture(
           _authService.currentUser!.uid,
           _imageFile!,
@@ -130,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        // REMOVED: backgroundColor (use theme default)
         actions: [
           IconButton(
             icon: Icon(_isEditing ? Icons.close : Icons.edit),
@@ -142,12 +139,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 }
               });
             },
+            tooltip: _isEditing ? 'Cancel' : 'Edit Profile',
           ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await _authService.signOut();
+              // Show confirmation dialog
+              final shouldLogout = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Logout'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (shouldLogout == true) {
+                await _authService.signOut();
+              }
             },
+            tooltip: 'Logout',
           ),
         ],
       ),

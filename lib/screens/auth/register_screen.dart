@@ -13,7 +13,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _pageController = PageController();
   final _authService = AuthService();
   
-  // Controllers
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -23,7 +22,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _heightController = TextEditingController();
   final _targetWeightController = TextEditingController();
   
-  // Form values
   String _gender = 'male';
   String _activityLevel = 'moderate';
   String _weightLossRate = 'moderate';
@@ -45,25 +43,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
-    print('🔵 Register button pressed');
-    
     if (_formKey.currentState!.validate()) {
-      print('✅ Form validation passed');
       setState(() => _isLoading = true);
       
       try {
-        print('🔵 Calling AuthService.signUp...');
-        print('🔵 Form data:');
-        print('  - Name: ${_nameController.text}');
-        print('  - Email: ${_emailController.text}');
-        print('  - Age: ${_ageController.text}');
-        print('  - Weight: ${_weightController.text}');
-        print('  - Height: ${_heightController.text}');
-        print('  - Target Weight: ${_targetWeightController.text}');
-        print('  - Gender: $_gender');
-        print('  - Activity: $_activityLevel');
-        print('  - Weight Loss Rate: $_weightLossRate');
-        
         await _authService.signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
@@ -73,19 +56,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           height: double.parse(_heightController.text),
           gender: _gender,
           activityLevel: _activityLevel,
-          goal: 'lose_weight', // Fixed as lose weight
+          goal: 'lose_weight',
           targetWeight: double.parse(_targetWeightController.text),
         );
-        
-        print('✅ Registration successful!');
         
         if (mounted) {
           Navigator.pop(context);
         }
       } catch (e) {
-        print('❌ Registration failed!');
-        print('❌ Error: $e');
-        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -100,8 +78,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           setState(() => _isLoading = false);
         }
       }
-    } else {
-      print('❌ Form validation failed');
     }
   }
 
@@ -129,7 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final target = double.parse(_targetWeightController.text);
       final difference = current - target;
       
-      double weeklyLoss = 0.5; // default moderate
+      double weeklyLoss = 0.5;
       if (_weightLossRate == 'slow') weeklyLoss = 0.25;
       if (_weightLossRate == 'fast') weeklyLoss = 0.75;
       
@@ -390,7 +366,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 24),
           
-          // Current Weight Display
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -430,7 +405,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           
           const SizedBox(height: 20),
           
-          // Target Weight Input
           TextFormField(
             controller: _targetWeightController,
             keyboardType: TextInputType.number,
@@ -459,7 +433,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           
           const SizedBox(height: 16),
           
-          // Weight Loss Rate
           DropdownButtonFormField<String>(
             value: _weightLossRate,
             decoration: const InputDecoration(
@@ -492,7 +465,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           
           const SizedBox(height: 16),
           
-          // Activity Level (tetap perlu untuk kalkulasi kalori)
           DropdownButtonFormField<String>(
             value: _activityLevel,
             decoration: const InputDecoration(
@@ -526,7 +498,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           
           const SizedBox(height: 24),
           
-          // Estimated Timeline
           if (_targetWeightController.text.isNotEmpty && _weightController.text.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(16),

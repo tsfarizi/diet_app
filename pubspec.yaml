@@ -46,6 +46,10 @@ dependencies:
   # Path package untuk file path operations - FIXED: Added missing dependency
   path: ^1.8.3
 
+  # UI Enhancements (NEW - Day 1) 
+  flutter_animate: ^4.5.0
+  google_fonts: ^6.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

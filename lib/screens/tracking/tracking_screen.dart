@@ -145,7 +145,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Track Meal'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        // REMOVED: backgroundColor (use theme default)
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
