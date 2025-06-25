@@ -1,8 +1,8 @@
-# Ignore everything
+# Abaikan semua file
 *
 
-# Except these:
+# Tapi izinkan:
 !.gitignore
-!*/                   # Folder structure
-!*.dart               # Hanya file .dart saja yang diikutkan
-!*/**/*.dart          # File dart dalam subfolder tetap diikutkan
+!*.dart
+!*/                  # penting! agar folder terbaca
+!*/**/*.dart         # file .dart di subfolder tetap diikutkan
