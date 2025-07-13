@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1056457472683",
+    "project_id": "shihhati",
+    "storage_bucket": "shihhati.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1056457472683:android:dd520ffac436421f3795ee",
+        "android_client_info": {
+          "package_name": "com.example.diet_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1056457472683-dt5q9dnrchl2tcveii23q0g63jlae1gt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.diet_app",
+            "certificate_hash": "8b9d7016d8797d5f73527d73df23054953e358dd"
+          }
+        },
+        {
+          "client_id": "1056457472683-q27gavbtq3qr66n5p3b4a4ke8q8ie11s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwU7kkGGlSGLDHWuBmCyI2vSb8geVUE3E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1056457472683-q27gavbtq3qr66n5p3b4a4ke8q8ie11s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
