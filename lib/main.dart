@@ -15,7 +15,7 @@ import 'services/storage_service.dart';
 import 'services/permission_service.dart';
 import 'services/local_notification_service.dart';
 import 'services/daily_reminder_service.dart';
-import 'services/food_search_service.dart'; // ← ganti CSV
+import 'services/food_search_service.dart';
 import 'themes/app_theme.dart';
 
 @pragma('vm:entry-point')

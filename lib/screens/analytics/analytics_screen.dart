@@ -22,16 +22,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   DateTime _focusedDate = DateTime.now();
   CalendarFormat _calendarFormat = CalendarFormat.month;
   bool _showCalendar = false;
-
   List<DateTime> _datesWithData = [];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _databaseService = Provider.of<DatabaseService>(context, listen: false);
-      _loadDatesWithData();
-    });
+    _databaseService = Provider.of<DatabaseService>(context, listen: false);
+    _loadDatesWithData();
   }
 
   Future<void> _loadDatesWithData() async {
@@ -39,31 +36,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       final now = DateTime.now();
       final startDate = DateTime(now.year, now.month - 2, 1);
       final endDate = DateTime(now.year, now.month + 1, 0);
-
       List<DateTime> dates = [];
-
-      for (DateTime date = startDate; date.isBefore(endDate); date = date.add(Duration(days: 1))) {
+      for (
+        DateTime date = startDate;
+        date.isBefore(endDate);
+        date = date.add(const Duration(days: 1))
+      ) {
         try {
           final meals = await _databaseService.getMealsForDate(date);
-          final waterIntake = await _databaseService.getWaterIntakeForDate(date);
+          final waterIntake = await _databaseService.getWaterIntakeForDate(
+            date,
+          );
           final steps = await _databaseService.getStepsForDate(date);
-
           if (meals.isNotEmpty || waterIntake > 0 || steps > 0) {
             dates.add(DateTime(date.year, date.month, date.day));
           }
-        } catch (e) {
-          debugPrint('Skipping date ${date.toString()}: $e');
-        }
+        } catch (_) {}
       }
-
       if (mounted) {
-        setState(() {
-          _datesWithData = dates;
-        });
+        setState(() => _datesWithData = dates);
       }
-    } catch (e) {
-      debugPrint('Error loading dates with data: $e');
-    }
+    } catch (_) {}
   }
 
   void _onDateSelected(DateTime selectedDate, DateTime focusedDate) {
@@ -77,7 +70,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   void _goToPreviousDay() {
-    final previousDay = _selectedDate.subtract(Duration(days: 1));
+    final previousDay = _selectedDate.subtract(const Duration(days: 1));
     if (mounted) {
       setState(() {
         _selectedDate = previousDay;
@@ -87,8 +80,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   void _goToNextDay() {
-    final nextDay = _selectedDate.add(Duration(days: 1));
-    if (!isSameDay(nextDay, DateTime.now().add(Duration(days: 1)))) {
+    final nextDay = _selectedDate.add(const Duration(days: 1));
+    if (!isSameDay(nextDay, DateTime.now().add(const Duration(days: 1)))) {
       if (mounted) {
         setState(() {
           _selectedDate = nextDay;
@@ -133,9 +126,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   Column(
                     children: [
                       _buildHeader(themeProvider),
-                      Expanded(
-                        child: _buildAnalyticsContent(themeProvider),
-                      ),
+                      Expanded(child: _buildAnalyticsContent(themeProvider)),
                     ],
                   ),
                   if (_showCalendar) _buildCalendarOverlay(themeProvider),
@@ -150,9 +141,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Widget _buildHeader(AppTheme themeProvider) {
     final isToday = isSameDay(_selectedDate, DateTime.now());
-
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           Row(
@@ -160,7 +150,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: const [
                   Text(
                     'Analytics',
                     style: TextStyle(
@@ -171,10 +161,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ),
                   Text(
                     'Progress harian diet & cardio',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.white70),
                   ),
                 ],
               ),
@@ -182,12 +169,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 GestureDetector(
                   onTap: _goToToday,
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Colors.white24,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Hari Ini',
                       style: TextStyle(
                         color: Colors.white,
@@ -199,7 +189,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _buildDatePicker(themeProvider),
         ],
       ),
@@ -211,37 +201,39 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       children: [
         IconButton(
           onPressed: _goToPreviousDay,
-          icon: Icon(Icons.chevron_left, color: Colors.white),
+          icon: const Icon(Icons.chevron_left, color: Colors.white),
         ),
         Expanded(
           child: GestureDetector(
-            onTap: () {
-              setState(() {
-                _showCalendar = !_showCalendar;
-              });
-            },
+            onTap: () => setState(() => _showCalendar = !_showCalendar),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: Colors.white24,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.calendar_today, color: Colors.white, size: 20),
-                  SizedBox(width: 8),
+                  const Icon(
+                    Icons.calendar_today,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
                     _formatSelectedDate(),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Icon(
-                    _showCalendar ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    _showCalendar
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     color: Colors.white,
                   ),
                 ],
@@ -253,7 +245,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           onPressed: _canGoToNextDay() ? _goToNextDay : null,
           icon: Icon(
             Icons.chevron_right,
-            color: _canGoToNextDay() ? Colors.white : Colors.white.withValues(alpha: 0.3),
+            color: _canGoToNextDay() ? Colors.white : Colors.white30,
           ),
         ),
       ],
@@ -263,19 +255,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget _buildCalendarOverlay(AppTheme themeProvider) {
     return Positioned.fill(
       child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _showCalendar = false;
-          });
-        },
+        onTap: () => setState(() => _showCalendar = false),
         child: Container(
-          color: Colors.black.withValues(alpha: 0.5),
+          color: Colors.black45,
           child: Center(
             child: Container(
-              margin: EdgeInsets.all(20),
-              padding: EdgeInsets.all(20),
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: themeProvider.isDarkMode ? AppColors.cardDark : Colors.white,
+                color: themeProvider.isDarkMode
+                    ? AppColors.cardDark
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -284,7 +274,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         'Pilih Tanggal',
                         style: TextStyle(
                           fontSize: 18,
@@ -292,38 +282,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         ),
                       ),
                       IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _showCalendar = false;
-                          });
-                        },
-                        icon: Icon(Icons.close),
+                        onPressed: () => setState(() => _showCalendar = false),
+                        icon: const Icon(Icons.close),
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   TableCalendar<DateTime>(
                     firstDay: DateTime.utc(2020, 1, 1),
                     lastDay: DateTime.now(),
                     focusedDay: _focusedDate,
                     calendarFormat: _calendarFormat,
-                    selectedDayPredicate: (day) {
-                      return isSameDay(_selectedDate, day);
-                    },
-                    eventLoader: (day) {
-                      return _datesWithData.where((date) => isSameDay(date, day)).toList();
-                    },
+                    selectedDayPredicate: (day) =>
+                        isSameDay(_selectedDate, day),
+                    eventLoader: (day) =>
+                        _datesWithData.where((d) => isSameDay(d, day)).toList(),
                     startingDayOfWeek: StartingDayOfWeek.monday,
                     onDaySelected: _onDateSelected,
-                    onFormatChanged: (format) {
-                      setState(() {
-                        _calendarFormat = format;
-                      });
-                    },
-                    onPageChanged: (focusedDay) {
-                      _focusedDate = focusedDay;
-                    },
-                    calendarStyle: CalendarStyle(
+                    onFormatChanged: (f) => setState(() => _calendarFormat = f),
+                    onPageChanged: (f) => _focusedDate = f,
+                    calendarStyle: const CalendarStyle(
                       outsideDaysVisible: false,
                       weekendTextStyle: TextStyle(color: AppColors.orange),
                       holidayTextStyle: TextStyle(color: AppColors.orange),
@@ -332,7 +310,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         shape: BoxShape.circle,
                       ),
                       todayDecoration: BoxDecoration(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.5),
+                        color: AppColors.primaryGreenLight,
                         shape: BoxShape.circle,
                       ),
                       markerDecoration: BoxDecoration(
@@ -349,7 +327,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         color: AppColors.primaryGreen,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      formatButtonTextStyle: TextStyle(color: Colors.white),
+                      formatButtonTextStyle: const TextStyle(
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -366,91 +346,47 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       stream: _getSelectedDateProgress(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(color: AppColors.primaryGreen),
-                SizedBox(height: 16),
-                Text(
-                  'Memuat data analytics...',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-              ],
-            ),
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primaryGreen),
           );
         }
-
         if (snapshot.hasError) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-                SizedBox(height: 16),
-                Text(
-                  'Error loading analytics data',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Error: ${snapshot.error}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => setState(() {}),
-                  child: Text('Retry'),
-                ),
-              ],
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.white),
             ),
           );
         }
-
         if (!snapshot.hasData || snapshot.data == null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.cloud_off, size: 64, color: Colors.grey[400]),
-                SizedBox(height: 16),
-                Text(
-                  'No data available',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-                SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () => setState(() {}),
-                  child: Text('Refresh'),
-                ),
-              ],
+          return const Center(
+            child: Text(
+              'No data available',
+              style: TextStyle(color: Colors.white),
             ),
           );
         }
-
-        final progressData = snapshot.data!;
-        if (progressData['error'] != null) {
-          return _buildIncompleteProfile(themeProvider, progressData['error']);
+        final data = snapshot.data!;
+        if (data['error'] != null) {
+          return _buildIncompleteProfile(themeProvider, data['error']);
         }
-
         return RefreshIndicator(
           onRefresh: () async {
             await _loadDatesWithData();
             setState(() {});
           },
           child: SingleChildScrollView(
-            physics: AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.all(16),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildProgressCards(themeProvider, progressData),
-                SizedBox(height: 24),
-                _buildNutritionSummary(themeProvider, progressData),
-                SizedBox(height: 24),
+                _buildProgressCards(themeProvider, data),
+                const SizedBox(height: 24),
+                _buildNutritionSummary(themeProvider, data),
+                const SizedBox(height: 24),
                 _buildActivitiesList(themeProvider),
-                SizedBox(height: 100),
+                const SizedBox(height: 100),
               ],
             ),
           ),
@@ -459,11 +395,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildIncompleteProfile(AppTheme themeProvider, String errorMessage) {
+  Widget _buildIncompleteProfile(AppTheme themeProvider, String msg) {
     return Center(
       child: Container(
-        padding: EdgeInsets.all(24),
-        margin: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
+        margin: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: themeProvider.isDarkMode ? AppColors.cardDark : Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -471,28 +407,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.analytics_outlined, size: 64, color: Colors.grey[400]),
-            SizedBox(height: 16),
-            Text(
+            const Icon(Icons.analytics_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
               'Data Tidak Lengkap',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+                color: Colors.grey,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              errorMessage == 'Profile incomplete' 
+              msg == 'Profile incomplete'
                   ? 'Lengkapi profil Anda di tab Profile untuk melihat analytics personal'
-                  : errorMessage,
+                  : msg,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[500]),
+              style: const TextStyle(color: Colors.grey),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => setState(() {}),
-              child: Text('Coba Lagi'),
+              child: const Text('Coba Lagi'),
             ),
           ],
         ),
@@ -500,16 +436,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildProgressCards(AppTheme themeProvider, Map<String, dynamic> progressData) {
-    final actual = progressData['actual'] as Map<String, dynamic>? ?? {};
-    final targets = progressData['targets'] as Map<String, dynamic>? ?? {};
-
+  Widget _buildProgressCards(
+    AppTheme themeProvider,
+    Map<String, dynamic> data,
+  ) {
+    final actual = data['actual'] as Map<String, dynamic>? ?? {};
+    final targets = data['targets'] as Map<String, dynamic>? ?? {};
     final todayCalories = (actual['calories'] ?? 0.0).toDouble();
     final cardioCalories = (actual['exerciseCalories'] ?? 0.0).toDouble();
     final waterIntake = (actual['water'] ?? 0.0).toDouble();
     final totalSteps = (actual['steps'] ?? 0).toInt();
     final totalWorkouts = (actual['workouts'] ?? 0).toInt();
-
     final targetCalories = (targets['calories'] ?? 2000.0).toDouble();
     final targetWater = (targets['water'] ?? 2000.0).toDouble();
     final targetSteps = (targets['steps'] ?? 8000).toInt();
@@ -526,100 +463,106 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             color: themeProvider.isDarkMode ? Colors.white : Colors.black,
           ),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
               child: _buildStatCard(
-                title: 'Kalori',
-                value: '${todayCalories.toInt()}',
-                unit: 'kcal',
-                subtitle: 'Target: ${targetCalories.toInt()}',
-                progress: targetCalories > 0 ? todayCalories / targetCalories : 0.0,
-                color: AppColors.caloriesColor,
-                icon: Icons.local_fire_department,
-                themeProvider: themeProvider,
+                'Kalori',
+                '${todayCalories.toInt()}',
+                'kcal',
+                'Target: ${targetCalories.toInt()}',
+                targetCalories > 0 ? todayCalories / targetCalories : 0.0,
+                AppColors.caloriesColor,
+                Icons.local_fire_department,
+                themeProvider,
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
-                title: 'Cardio',
-                value: '${cardioCalories.toInt()}',
-                unit: 'kcal',
-                subtitle: 'Target: 200 kcal',
-                progress: cardioCalories / 200.0,
-                color: AppColors.orange,
-                icon: Icons.directions_run,
-                themeProvider: themeProvider,
+                'Cardio',
+                '${cardioCalories.toInt()}',
+                'kcal',
+                'Target: 200 kcal',
+                cardioCalories / 200.0,
+                AppColors.orange,
+                Icons.directions_run,
+                themeProvider,
               ),
             ),
           ],
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _buildStatCard(
-                title: 'Air Minum',
-                value: '${(waterIntake / 1000).toStringAsFixed(1)}',
-                unit: 'L',
-                subtitle: 'Target: ${(targetWater / 1000).toStringAsFixed(1)}L',
-                progress: targetWater > 0 ? waterIntake / targetWater : 0.0,
-                color: AppColors.waterColor,
-                icon: Icons.water_drop,
-                themeProvider: themeProvider,
+                'Air Minum',
+                '${(waterIntake / 1000).toStringAsFixed(1)}',
+                'L',
+                'Target: ${(targetWater / 1000).toStringAsFixed(1)}L',
+                targetWater > 0 ? waterIntake / targetWater : 0.0,
+                AppColors.waterColor,
+                Icons.water_drop,
+                themeProvider,
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
-                title: 'Aktivitas',
-                value: '$totalWorkouts',
-                unit: 'sesi',
-                subtitle: 'Target: $targetWorkouts',
-                progress: targetWorkouts > 0 ? totalWorkouts / targetWorkouts.toDouble() : 0.0,
-                color: AppColors.primaryGreen,
-                icon: Icons.timeline,
-                themeProvider: themeProvider,
+                'Aktivitas',
+                '$totalWorkouts',
+                'sesi',
+                'Target: $targetWorkouts',
+                targetWorkouts > 0 ? totalWorkouts / targetWorkouts : 0.0,
+                AppColors.primaryGreen,
+                Icons.timeline,
+                themeProvider,
               ),
             ),
           ],
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _buildStatCard(
-                title: 'Langkah',
-                value: '$totalSteps',
-                unit: 'steps',
-                subtitle: 'Target: $targetSteps',
-                progress: targetSteps > 0 ? totalSteps / targetSteps.toDouble() : 0.0,
-                color: AppColors.blue,
-                icon: Icons.directions_walk,
-                themeProvider: themeProvider,
+                'Langkah',
+                '$totalSteps',
+                'steps',
+                'Target: $targetSteps',
+                targetSteps > 0 ? totalSteps / targetSteps : 0.0,
+                AppColors.blue,
+                Icons.directions_walk,
+                themeProvider,
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: themeProvider.isDarkMode ? AppColors.cardDark : Colors.white,
+                  color: themeProvider.isDarkMode
+                      ? AppColors.cardDark
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: Colors.black.withOpacity(0.1),
                       blurRadius: 8,
-                      offset: Offset(0, 2),
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.emoji_events, color: Colors.amber, size: 24),
-                    SizedBox(height: 8),
+                    const Icon(
+                      Icons.emoji_events,
+                      color: Colors.amber,
+                      size: 24,
+                    ),
+                    const SizedBox(height: 8),
                     Text(
                       _getMotivationMessage(totalWorkouts, cardioCalories),
                       style: TextStyle(
@@ -641,35 +584,34 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   String _getMotivationMessage(int workouts, double calories) {
     if (workouts >= 3) return '🎉 Target tercapai!';
-    if (workouts >= 2) return '💪 Hampir sampai!';
-    if (workouts >= 1) return '🔥 Terus semangat!';
+    if (workouts == 2) return '💪 Hampir sampai!';
+    if (workouts == 1) return '🔥 Terus semangat!';
     if (calories > 0) return '✨ Mulai yang baik!';
     return '🚀 Ayo mulai!';
   }
 
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required String unit,
-    required String subtitle,
-    required double progress,
-    required Color color,
-    required IconData icon,
-    required AppTheme themeProvider,
-  }) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    String unit,
+    String subtitle,
+    double progress,
+    Color color,
+    IconData icon,
+    AppTheme themeProvider,
+  ) {
     final isOverTarget = progress > 1.0;
     final displayProgress = progress.clamp(0.0, 1.0);
-
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: themeProvider.isDarkMode ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -679,25 +621,25 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),
-              Spacer(),
+              const Spacer(),
               Text(
                 title,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: Colors.grey,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -709,34 +651,30 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   color: isOverTarget ? Colors.orange : color,
                 ),
               ),
-              SizedBox(width: 4),
+              const SizedBox(width: 4),
               Padding(
-                padding: EdgeInsets.only(bottom: 2),
+                padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
                   unit,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             subtitle,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[500],
-            ),
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           LinearProgressIndicator(
             value: displayProgress,
             backgroundColor: color.withOpacity(0.1),
-            valueColor: AlwaysStoppedAnimation<Color>(isOverTarget ? Colors.orange : color),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              isOverTarget ? Colors.orange : color,
+            ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
             '${(progress * 100).toInt()}%',
             style: TextStyle(
@@ -750,17 +688,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildNutritionSummary(AppTheme themeProvider, Map<String, dynamic> progressData) {
-    final actual = progressData['actual'] as Map<String, dynamic>? ?? {};
-    final targets = progressData['targets'] as Map<String, dynamic>? ?? {};
-
+  Widget _buildNutritionSummary(
+    AppTheme themeProvider,
+    Map<String, dynamic> data,
+  ) {
+    final actual = data['actual'] as Map<String, dynamic>? ?? {};
+    final targets = data['targets'] as Map<String, dynamic>? ?? {};
     final protein = (actual['protein'] ?? 0.0).toDouble();
     final carbs = (actual['carbs'] ?? 0.0).toDouble();
     final fat = (actual['fat'] ?? 0.0).toDouble();
-
     if (protein == 0 && carbs == 0 && fat == 0) {
       return Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: themeProvider.isDarkMode ? AppColors.cardDark : Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -768,33 +707,29 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
               blurRadius: 8,
-              offset: Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Column(
-          children: [
-            Icon(Icons.restaurant, size: 48, color: Colors.grey[400]),
+          children: const [
+            Icon(Icons.restaurant, size: 48, color: Colors.grey),
             SizedBox(height: 16),
             Text(
               'Belum ada data nutrisi',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
             ),
             SizedBox(height: 4),
             Text(
               'Mulai catat makanan untuk melihat breakdown',
-              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
       );
     }
-
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: themeProvider.isDarkMode ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -802,7 +737,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -810,19 +745,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: [
+            children: const [
               Icon(Icons.restaurant, color: AppColors.primaryGreen),
               SizedBox(width: 8),
               Text(
                 'Ringkasan Nutrisi',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
@@ -833,7 +765,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   AppColors.proteinColor,
                 ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               Expanded(
                 child: _buildNutritionItem(
                   'Karbohidrat',
@@ -842,7 +774,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   AppColors.carbsColor,
                 ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               Expanded(
                 child: _buildNutritionItem(
                   'Lemak',
@@ -858,9 +790,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     ).animate().fadeIn(duration: 1200.ms, delay: 400.ms).slideX(begin: 0.2);
   }
 
-  Widget _buildNutritionItem(String label, double value, double target, Color color) {
+  Widget _buildNutritionItem(
+    String label,
+    double value,
+    double target,
+    Color color,
+  ) {
     final percentage = target > 0 ? (value / target * 100).toInt() : 0;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -874,17 +810,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
-            SizedBox(width: 6),
+            const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(
           '${value.toStringAsFixed(1)}g',
           style: TextStyle(
@@ -893,21 +826,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             color: color,
           ),
         ),
-        SizedBox(height: 2),
+        const SizedBox(height: 2),
         Text(
           'Target: ${target.toStringAsFixed(0)}g',
-          style: TextStyle(
-            fontSize: 10,
-            color: Colors.grey[500],
-          ),
+          style: const TextStyle(fontSize: 10, color: Colors.grey),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         LinearProgressIndicator(
           value: target > 0 ? (value / target).clamp(0.0, 1.0) : 0.0,
           backgroundColor: color.withOpacity(0.1),
           valueColor: AlwaysStoppedAnimation<Color>(color),
         ),
-        SizedBox(height: 2),
+        const SizedBox(height: 2),
         Text(
           '$percentage%',
           style: TextStyle(
@@ -923,20 +853,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget _buildActivitiesList(AppTheme themeProvider) {
     return StreamBuilder<List<dynamic>>(
       stream: _databaseService.streamAllActivitiesForDate(_selectedDate),
-      builder: (context, activitiesSnapshot) {
-        if (activitiesSnapshot.connectionState == ConnectionState.waiting) {
-          return Center(
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: EdgeInsets.all(20),
               child: CircularProgressIndicator(),
             ),
           );
         }
-
-        final activities = activitiesSnapshot.data ?? [];
-
+        final activities = snapshot.data ?? [];
         return Container(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: themeProvider.isDarkMode ? AppColors.cardDark : Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -944,7 +872,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               BoxShadow(
                 color: Colors.black.withOpacity(0.1),
                 blurRadius: 8,
-                offset: Offset(0, 2),
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -953,26 +881,29 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.history, color: AppColors.primaryGreen),
-                  SizedBox(width: 8),
+                  const Icon(Icons.history, color: AppColors.primaryGreen),
+                  const SizedBox(width: 8),
                   Text(
                     'Aktivitas ${_getDateTitle()}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Spacer(),
+                  const Spacer(),
                   if (activities.isNotEmpty)
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primaryGreen.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${activities.length} aktivitas',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 11,
                           color: AppColors.primaryGreen,
                           fontWeight: FontWeight.w600,
@@ -981,22 +912,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ),
                 ],
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               if (activities.isEmpty)
-                Center(
+                const Center(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24.0),
+                    padding: EdgeInsets.symmetric(vertical: 24),
                     child: Column(
                       children: [
-                        Icon(Icons.timeline, size: 48, color: Colors.grey[400]),
+                        Icon(Icons.timeline, size: 48, color: Colors.grey),
                         SizedBox(height: 8),
                         Text(
                           'Belum ada aktivitas',
-                          style: TextStyle(color: Colors.grey[600]),
+                          style: TextStyle(color: Colors.grey),
                         ),
                         Text(
                           'Mulai catat makanan dan cardio',
-                          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -1005,16 +936,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               else
                 ListView.builder(
                   shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
+                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: activities.length,
-                  itemBuilder: (context, index) {
-                    final item = activities[index];
-                    if (item is MealModel) {
+                  itemBuilder: (context, i) {
+                    final item = activities[i];
+                    if (item is MealModel)
                       return _buildMealActivityItem(item, themeProvider);
-                    } else if (item is WalkingSession) {
+                    if (item is WalkingSession)
                       return _buildWalkingActivityItem(item, themeProvider);
-                    }
-                    return SizedBox.shrink();
+                    return const SizedBox.shrink();
                   },
                 ),
             ],
@@ -1026,8 +956,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Widget _buildMealActivityItem(MealModel meal, AppTheme themeProvider) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: themeProvider.isDarkMode
             ? AppColors.surfaceDark.withOpacity(0.5)
@@ -1037,7 +967,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: _getMealTypeColor(meal.mealType).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
@@ -1048,14 +978,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               size: 20,
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  meal.foods.isNotEmpty ? meal.foods.first.food.name : 'Makanan',
-                  style: TextStyle(
+                  meal.foods.isNotEmpty
+                      ? meal.foods.first.food.name
+                      : 'Makanan',
+                  style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
@@ -1063,30 +995,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
                 Text(
                   '${_getMealTypeDisplayName(meal.mealType)} • ${meal.totalNutrition.calories.toInt()} kcal',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
           Text(
             _formatTime(meal.date),
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[500],
-            ),
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWalkingActivityItem(WalkingSession session, AppTheme themeProvider) {
+  Widget _buildWalkingActivityItem(
+    WalkingSession session,
+    AppTheme themeProvider,
+  ) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: themeProvider.isDarkMode
             ? AppColors.surfaceDark.withOpacity(0.5)
@@ -1096,35 +1026,29 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: AppColors.orange.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.directions_run,
               color: AppColors.orange,
               size: 20,
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Cardio Session',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 Text(
                   '${session.formattedDistance} • ${session.calories.toInt()} kcal • ${session.steps} langkah',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -1132,10 +1056,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           Text(
             _formatTime(session.startTime),
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[500],
-            ),
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
           ),
         ],
       ),
@@ -1143,42 +1064,44 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   String _formatSelectedDate() {
-    final months = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
     ];
-
     final isToday = isSameDay(_selectedDate, DateTime.now());
     if (isToday) return 'Hari Ini';
-
-    final yesterday = DateTime.now().subtract(Duration(days: 1));
-    final isYesterday = isSameDay(_selectedDate, yesterday);
-    if (isYesterday) return 'Kemarin';
-
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    if (isSameDay(_selectedDate, yesterday)) return 'Kemarin';
     return '${_selectedDate.day} ${months[_selectedDate.month - 1]} ${_selectedDate.year}';
   }
 
   String _getDateTitle() {
-    final isToday = isSameDay(_selectedDate, DateTime.now());
-    if (isToday) return 'Progress Hari Ini';
-
-    final yesterday = DateTime.now().subtract(Duration(days: 1));
-    final isYesterday = isSameDay(_selectedDate, yesterday);
-    if (isYesterday) return 'Progress Kemarin';
-
+    if (isSameDay(_selectedDate, DateTime.now())) return 'Progress Hari Ini';
+    if (isSameDay(
+      _selectedDate,
+      DateTime.now().subtract(const Duration(days: 1)),
+    ))
+      return 'Progress Kemarin';
     return 'Progress ${_selectedDate.day}/${_selectedDate.month}';
   }
 
-  bool _canGoToNextDay() {
-    return !isSameDay(_selectedDate, DateTime.now());
-  }
+  bool _canGoToNextDay() => !isSameDay(_selectedDate, DateTime.now());
 
-  String _formatTime(DateTime dateTime) {
-    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-  }
+  String _formatTime(DateTime dt) =>
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
-  IconData _getMealTypeIcon(MealType type) {
-    switch (type) {
+  IconData _getMealTypeIcon(MealType t) {
+    switch (t) {
       case MealType.breakfast:
         return Icons.free_breakfast;
       case MealType.lunch:
@@ -1190,8 +1113,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
   }
 
-  Color _getMealTypeColor(MealType type) {
-    switch (type) {
+  Color _getMealTypeColor(MealType t) {
+    switch (t) {
       case MealType.breakfast:
         return AppColors.orange;
       case MealType.lunch:
@@ -1203,8 +1126,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
   }
 
-  String _getMealTypeDisplayName(MealType type) {
-    switch (type) {
+  String _getMealTypeDisplayName(MealType t) {
+    switch (t) {
       case MealType.breakfast:
         return 'Sarapan';
       case MealType.lunch:
