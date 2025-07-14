@@ -433,7 +433,7 @@ class _EnhancedTrackingScreenState extends State<EnhancedTrackingScreen>
             Text('${food.nutritionPer100g.calories.toInt()} kcal per 100g'),
             const SizedBox(height: 4),
             Row(
-              spacing: 7,
+              spacing: 6,
               children: [
                 Text('P: ${food.nutritionPer100g.protein.toStringAsFixed(1)}g'),
                 Text('C: ${food.nutritionPer100g.carbs.toStringAsFixed(1)}g'),
