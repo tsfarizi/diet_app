@@ -662,6 +662,7 @@ class _EnhancedTrackingScreenState extends State<EnhancedTrackingScreen>
                   Row(
                     children: [
                       Expanded(
+                        flex: 3,
                         child: DropdownButtonFormField<MealType>(
                           value: _selectedMealType,
                           decoration: const InputDecoration(
@@ -683,6 +684,7 @@ class _EnhancedTrackingScreenState extends State<EnhancedTrackingScreen>
                       ),
                       const SizedBox(width: 8),
                       Expanded(
+                        flex: 1,
                         child: TextField(
                           controller: _amountController,
                           keyboardType: TextInputType.number,

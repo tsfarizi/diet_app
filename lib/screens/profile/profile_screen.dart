@@ -546,6 +546,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Row(
                       children: [
                         Expanded(
+                          flex: 3,
                           child: TextField(
                             controller: _ageController,
                             enabled: _isEditing,
@@ -561,6 +562,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(width: 16),
                         Expanded(
+                          flex: 7,
                           child: DropdownButtonFormField<String>(
                             value: _gender,
                             decoration: const InputDecoration(
