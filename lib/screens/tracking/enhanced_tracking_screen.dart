@@ -75,7 +75,6 @@ class _EnhancedTrackingScreenState extends State<EnhancedTrackingScreen>
     super.dispose();
   }
 
-  /// Load page pertama & total count
   Future<void> _loadInitialData() async {
     setState(() => _isInitializing = true);
     try {
@@ -95,7 +94,6 @@ class _EnhancedTrackingScreenState extends State<EnhancedTrackingScreen>
     }
   }
 
-  /// Load next page
   Future<void> _loadMoreFoods() async {
     if (_cursor == null || _isLoadingMore) return;
     setState(() => _isLoadingMore = true);
@@ -115,7 +113,6 @@ class _EnhancedTrackingScreenState extends State<EnhancedTrackingScreen>
     }
   }
 
-  /// Callback saat text berubah di search bar
   void _onSearchChanged(String query) async {
     setState(() {
       _isLoadingSearch = query.isNotEmpty;
