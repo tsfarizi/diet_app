@@ -982,8 +982,9 @@ class DatabaseService {
   }
 
   Stream<Map<String, dynamic>> streamProgressForDate(DateTime date) {
-    if (_currentUserId == null)
+    if (_currentUserId == null) {
       return Stream.value({'error': 'Not authenticated'});
+    }
 
     return streamUserProfile()
         .where((profile) => profile != null)
@@ -1134,8 +1135,9 @@ class DatabaseService {
   }
 
   Stream<Map<String, dynamic>> streamCardioStatsForDate(DateTime date) {
-    if (_currentUserId == null)
+    if (_currentUserId == null) {
       return Stream.value({'calories': 0.0, 'steps': 0, 'workouts': 0});
+    }
 
     return streamWalkingSessionsForDate(date).map((
       List<WalkingSession> walkingSessions,
