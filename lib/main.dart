@@ -20,14 +20,14 @@ import 'themes/app_theme.dart';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
+  WidgetsFlutterBinding.ensureInitialized();
   Workmanager().executeTask((task, inputData) async {
     try {
       print('🔄 Background task started: $task');
-
-      await Firebase.initializeApp();
-
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
       await _executeBackgroundSmartNotifications();
-
       print('✅ Background task completed: $task');
       return Future.value(true);
     } catch (e) {
@@ -48,7 +48,7 @@ Future<void> _executeBackgroundSmartNotifications() async {
     final localNotifications = LocalNotificationService();
     await localNotifications.initialize();
 
-    final now = DateTime.now();
+    final now = DateTime.now().toLocal();
     final today = DateTime(now.year, now.month, now.day);
 
     final userDoc = await FirebaseFirestore.instance
@@ -73,7 +73,7 @@ Future<void> _executeBackgroundSmartNotifications() async {
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(today))
         .where(
           'date',
-          isLessThanOrEqualTo: Timestamp.fromDate(today.add(Duration(days: 1))),
+          isLessThan: Timestamp.fromDate(today.add(const Duration(days: 1))),
         )
         .get();
 
@@ -94,7 +94,7 @@ Future<void> _executeBackgroundSmartNotifications() async {
         .where('startTime', isGreaterThanOrEqualTo: today.toIso8601String())
         .where(
           'startTime',
-          isLessThanOrEqualTo: today.add(Duration(days: 1)).toIso8601String(),
+          isLessThan: today.add(const Duration(days: 1)).toIso8601String(),
         )
         .get();
 
@@ -167,10 +167,15 @@ Future<void> _executeBackgroundSmartNotifications() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
   await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+  await Workmanager().registerPeriodicTask(
+    'smart_notifications',
+    'smart_notifications',
+    frequency: const Duration(hours: 1),
+    initialDelay: const Duration(minutes: 15),
+    existingWorkPolicy: ExistingWorkPolicy.keep,
+  );
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -233,8 +238,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/* ───────────────────────── Data initializer ───────────────────────── */
-
 class DataInitializerWrapper extends StatefulWidget {
   const DataInitializerWrapper({super.key});
 
@@ -259,7 +262,6 @@ class _DataInitializerWrapperState extends State<DataInitializerWrapper> {
 
     try {
       await Future.wait([_initializeServices(), _warmUpFirestore()]);
-
       if (mounted) {
         setState(() {
           _isDataLoaded = true;
@@ -296,14 +298,12 @@ class _DataInitializerWrapperState extends State<DataInitializerWrapper> {
       await permissionService.requestScheduleExactAlarmPermission();
       await localNotificationService.initialize();
       await dailyReminderService.initialize();
-
       debugPrint('✅ Services initialized');
     } catch (e) {
       debugPrint('⚠️ Service initialization error (non-critical): $e');
     }
   }
 
-  /// Warm-up query agar cache Firestore siap (pengganti load CSV).
   Future<void> _warmUpFirestore() async {
     try {
       await FoodSearchService.getPopularFoods(
@@ -322,8 +322,6 @@ class _DataInitializerWrapperState extends State<DataInitializerWrapper> {
     return const MainNavigationWithLocalNotifications();
   }
 }
-
-/* ───────────────────── Main navigation wrapper ────────────────────── */
 
 class MainNavigationWithLocalNotifications extends StatefulWidget {
   const MainNavigationWithLocalNotifications({super.key});
@@ -347,9 +345,7 @@ class _MainNavigationWithLocalNotificationsState
         context,
         listen: false,
       );
-
       await Future.delayed(const Duration(seconds: 2));
-
       await localNotificationService.showCustomNotification(
         title: "🎉 Selamat Datang!",
         body:
@@ -365,8 +361,6 @@ class _MainNavigationWithLocalNotificationsState
   Widget build(BuildContext context) => const MainNavigation();
 }
 
-/* ───────────────────────── Splash screen ─────────────────────────── */
-
 class OptimizedSplashScreen extends StatelessWidget {
   final bool showProgress;
   const OptimizedSplashScreen({super.key, this.showProgress = false});
@@ -374,7 +368,6 @@ class OptimizedSplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(

@@ -5,6 +5,7 @@ import 'dart:async';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/walking_tracker_service.dart';
+import '../../services/local_notification_service.dart';
 import '../../models/user_model.dart';
 import '../../models/walking_session_model.dart';
 import '../../themes/app_theme.dart';
@@ -23,14 +24,11 @@ class CardioScreen extends StatefulWidget {
 class _CardioScreenState extends State<CardioScreen>
     with TickerProviderStateMixin {
   final WalkingTrackerService _walkingService = WalkingTrackerService();
-
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
   UserModel? _currentUser;
-
   StreamSubscription<WalkingSession>? _walkingSubscription;
-
   late TabController _tabController;
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -55,7 +53,6 @@ class _CardioScreenState extends State<CardioScreen>
       duration: Duration(milliseconds: 1000),
       vsync: this,
     );
-
     _fadeAnimation = CurvedAnimation(
       parent: _fadeController,
       curve: Curves.easeInOut,
@@ -64,7 +61,6 @@ class _CardioScreenState extends State<CardioScreen>
         .animate(
           CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
         );
-
     _fadeController.forward();
     _slideController.forward();
   }
@@ -75,29 +71,20 @@ class _CardioScreenState extends State<CardioScreen>
         _isLoading = true;
         _hasError = false;
       });
-
-      debugPrint('🚀 Initializing cardio screen...');
-
       if (!mounted) return;
-
       final databaseService = Provider.of<DatabaseService>(
         context,
         listen: false,
       );
       Provider.of<AuthService>(context, listen: false);
-
       _currentUser = await databaseService.getUserProfile();
-
       if (mounted) {
         setState(() {
           _isLoading = false;
           _hasError = false;
         });
       }
-
-      print('✅ Cardio screen initialized successfully');
     } catch (e) {
-      print('❌ Error initializing cardio screen: $e');
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -109,9 +96,7 @@ class _CardioScreenState extends State<CardioScreen>
   }
 
   void _listenToWalkingSession() {
-    _walkingSubscription = _walkingService.sessionStream?.listen((session) {
-      debugPrint('📊 Walking session updated: ${session.steps} steps');
-    });
+    _walkingSubscription = _walkingService.sessionStream?.listen((session) {});
   }
 
   void _onWalkingSessionComplete(WalkingSession session) {
@@ -131,6 +116,18 @@ class _CardioScreenState extends State<CardioScreen>
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => ProfileScreen()));
+  }
+
+  Future<void> _testNotification() async {
+    final localNotificationService = Provider.of<LocalNotificationService>(
+      context,
+      listen: false,
+    );
+    await localNotificationService.showInstantNotification(
+      title: '🔔 Test Notifikasi',
+      body: 'Ini notifikasi simulasi dari tombol debug',
+      payload: 'manual_test',
+    );
   }
 
   @override
@@ -159,6 +156,11 @@ class _CardioScreenState extends State<CardioScreen>
               ],
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_active),
+                onPressed: _testNotification,
+                tooltip: 'Test Notifikasi',
+              ),
               IconButton(
                 icon: const Icon(Icons.tune),
                 onPressed: _navigateToProfile,
@@ -203,7 +205,6 @@ class _CardioScreenState extends State<CardioScreen>
         ),
       );
     }
-
     if (_hasError) {
       return Center(
         child: Padding(
@@ -234,7 +235,6 @@ class _CardioScreenState extends State<CardioScreen>
         ),
       );
     }
-
     return RefreshIndicator(
       onRefresh: _initializeData,
       child: SingleChildScrollView(
@@ -276,7 +276,6 @@ class _CardioScreenState extends State<CardioScreen>
         ),
       );
     }
-
     return SingleChildScrollView(
       physics: AlwaysScrollableScrollPhysics(),
       child: Padding(
@@ -316,7 +315,7 @@ class _CardioScreenState extends State<CardioScreen>
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.2),
+                      color: Colors.orange.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -347,20 +346,19 @@ class _CardioScreenState extends State<CardioScreen>
     final bmi =
         (_currentUser!.weight /
         ((_currentUser!.height / 100) * (_currentUser!.height / 100)));
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.blue.withValues(alpha: 0.1),
-            Colors.purple.withValues(alpha: 0.1),
+            Colors.blue.withOpacity(0.1),
+            Colors.purple.withOpacity(0.1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+        border: Border.all(color: Colors.blue.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,7 +394,7 @@ class _CardioScreenState extends State<CardioScreen>
                 onPressed: _navigateToProfile,
                 icon: Icon(Icons.edit, color: Colors.blue),
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.blue.withValues(alpha: 0.2),
+                  backgroundColor: Colors.blue.withOpacity(0.2),
                 ),
               ),
             ],
@@ -446,9 +444,9 @@ class _CardioScreenState extends State<CardioScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         children: [
@@ -477,12 +475,10 @@ class _CardioScreenState extends State<CardioScreen>
       context,
       listen: false,
     );
-
     return StreamBuilder<Map<String, dynamic>>(
       stream: databaseService.streamExerciseStatsForDate(DateTime.now()),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          print('❌ Error in daily stats stream: ${snapshot.error}');
           return DailyStatsWidget(
             currentSteps: 0,
             currentCalories: 0.0,
@@ -494,13 +490,11 @@ class _CardioScreenState extends State<CardioScreen>
             targetMinutes: 60,
           );
         }
-
         final stats = snapshot.data ?? {};
         final currentSteps = stats['steps'] ?? 0;
         final currentCalories = (stats['calories'] ?? 0.0).toDouble();
         final currentWorkouts = stats['workouts'] ?? 0;
         final currentMinutes = stats['duration'] ?? 0;
-
         return DailyStatsWidget(
           currentSteps: currentSteps,
           currentCalories: currentCalories,
@@ -520,15 +514,12 @@ class _CardioScreenState extends State<CardioScreen>
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.green.withValues(alpha: 0.1),
-            Colors.teal.withValues(alpha: 0.1),
-          ],
+          colors: [Colors.green.withOpacity(0.1), Colors.teal.withOpacity(0.1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+        border: Border.all(color: Colors.green.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
