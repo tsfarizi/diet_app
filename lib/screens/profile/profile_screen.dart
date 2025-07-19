@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+
+// NEW: import untuk permission
+import 'package:permission_handler/permission_handler.dart';
+// NEW: import untuk iOS permission (dan bisa juga dipakai kalau service Anda perlu plugin)
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 import '../../services/auth_service.dart';
 import '../../services/storage_service.dart';
 import '../../services/daily_reminder_service.dart';
@@ -35,6 +41,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool _smartNotificationsEnabled = false;
   bool _isLoadingNotifications = false;
+
+  // NEW: instance opsional (digunakan untuk iOS request permission)
+  final FlutterLocalNotificationsPlugin _fln =
+      FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
@@ -163,6 +173,102 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // NEW: Pastikan izin notifikasi
+  Future<bool> _ensureNotificationPermission() async {
+    try {
+      // Android
+      if (Platform.isAndroid) {
+        // Android < 13 otomatis granted
+        final status = await Permission.notification.status;
+        if (status.isGranted) return true;
+
+        final result = await Permission.notification.request();
+        return result.isGranted;
+      }
+
+      // iOS / macOS
+      if (Platform.isIOS || Platform.isMacOS) {
+        final iosImpl = _fln
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >();
+        final macImpl = _fln
+            .resolvePlatformSpecificImplementation<
+              MacOSFlutterLocalNotificationsPlugin
+            >();
+
+        bool granted = false;
+
+        if (iosImpl != null) {
+          final res = await iosImpl.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+          granted = res ?? false;
+        } else if (macImpl != null) {
+          final res = await macImpl.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+          granted = res ?? false;
+        } else {
+          // fallback kalau plugin belum diinisialisasi
+          granted = true; // asumsi
+        }
+        return granted;
+      }
+
+      // Platform lain: anggap granted
+      return true;
+    } catch (e) {
+      debugPrint('Gagal meminta permission notifikasi: $e');
+      return false;
+    }
+  }
+
+  // NEW: Handler toggle dengan permission logic
+  Future<void> _handleToggleSmartNotifications(bool value) async {
+    if (_isLoadingNotifications) return;
+
+    if (value) {
+      setState(() => _isLoadingNotifications = true);
+      final granted = await _ensureNotificationPermission();
+      if (!granted) {
+        if (mounted) {
+          setState(() {
+            _isLoadingNotifications = false;
+            _smartNotificationsEnabled = false; // revert switch
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Izin notifikasi diperlukan untuk mengaktifkan Notifikasi Cerdas.',
+              ),
+              action: SnackBarAction(
+                label: 'Buka Pengaturan',
+                onPressed: () {
+                  openAppSettings();
+                },
+              ),
+            ),
+          );
+        }
+        return;
+      }
+      // Permission granted → lanjut
+      if (mounted) {
+        setState(() {
+          _isLoadingNotifications = false;
+        });
+      }
+      await _toggleNotifications(true);
+    } else {
+      await _toggleNotifications(false);
+    }
+  }
+
   Future<void> _toggleNotifications(bool enabled) async {
     setState(() => _isLoadingNotifications = true);
 
@@ -186,7 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('✅ Notifikasi cerdas diaktifkan!'),
+              content: const Text('✅ Notifikasi cerdas diaktifkan!'),
               backgroundColor: AppColors.primaryGreen,
             ),
           );
@@ -201,23 +307,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('❌ Notifikasi cerdas dinonaktifkan.'),
+              content: const Text('❌ Notifikasi cerdas dinonaktifkan.'),
               backgroundColor: Colors.orange,
             ),
           );
         }
       }
 
-      setState(() {
-        _smartNotificationsEnabled = enabled;
-        _isLoadingNotifications = false;
-      });
-    } catch (e) {
-      setState(() => _isLoadingNotifications = false);
       if (mounted) {
+        setState(() {
+          _smartNotificationsEnabled = enabled;
+          _isLoadingNotifications = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingNotifications = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error mengubah pengaturan notifikasi: $e')),
         );
+        // Revert UI bila gagal
+        setState(() {
+          _smartNotificationsEnabled = !enabled;
+        });
       }
     }
   }
@@ -234,7 +346,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('🧪 Test notification dikirim! Cek notifikasi Anda.'),
+            content: const Text(
+              '🧪 Test notification dikirim! Cek notifikasi Anda.',
+            ),
             backgroundColor: Colors.blue,
           ),
         );
@@ -255,35 +369,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: Row(
           children: [
             Icon(Icons.smart_toy, color: AppColors.primaryGreen, size: 24),
-            SizedBox(width: 8),
-            Text('Fitur Notifikasi Cerdas'),
+            const SizedBox(width: 8),
+            const Text('Fitur Notifikasi Cerdas'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Sistem akan mengirim pengingat otomatis berdasarkan aktivitas Anda:',
               style: TextStyle(fontWeight: FontWeight.w500),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             _buildFeatureItem('🏃‍♂️', 'Pengingat olahraga saat kurang aktif'),
             _buildFeatureItem('⚠️', 'Peringatan kalori berlebih'),
             _buildFeatureItem('💪', 'Motivasi harian'),
             _buildFeatureItem('📊', 'Analisis progress'),
             _buildFeatureItem('🔄', 'Berjalan otomatis walaupun app ditutup'),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Container(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue, size: 20),
-                  SizedBox(width: 8),
+                  const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Notifikasi akan disesuaikan dengan pola aktivitas harian Anda',
@@ -298,13 +412,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Tutup'),
+            child: const Text('Tutup'),
           ),
           if (_smartNotificationsEnabled)
             ElevatedButton.icon(
               onPressed: _testNotification,
-              icon: Icon(Icons.bug_report, size: 18),
-              label: Text('Test'),
+              icon: const Icon(Icons.bug_report, size: 18),
+              label: const Text('Test'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryGreen,
                 foregroundColor: Colors.white,
@@ -317,12 +431,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildFeatureItem(String emoji, String text) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Text(emoji, style: TextStyle(fontSize: 16)),
-          SizedBox(width: 8),
-          Expanded(child: Text(text, style: TextStyle(fontSize: 13))),
+          Text(emoji, style: const TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
         ],
       ),
     );
@@ -434,6 +548,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 20),
 
+            // ====== CARD NOTIFIKASI =====
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -446,7 +561,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Icons.notifications_active,
                           color: AppColors.primaryGreen,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Text(
                           'Pengaturan Notifikasi',
                           style: Theme.of(context).textTheme.titleLarge,
@@ -464,12 +579,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : Colors.grey,
                           size: 24,
                         ),
-                        SizedBox(width: 12),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Notifikasi Cerdas',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
@@ -495,9 +610,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           tooltip: 'Info Detail',
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         _isLoadingNotifications
-                            ? SizedBox(
+                            ? const SizedBox(
                                 width: 24,
                                 height: 24,
                                 child: CircularProgressIndicator(
@@ -506,7 +621,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               )
                             : Switch(
                                 value: _smartNotificationsEnabled,
-                                onChanged: _toggleNotifications,
+                                // CHANGED: panggil handler baru
+                                onChanged: _handleToggleSmartNotifications,
                                 activeColor: AppColors.primaryGreen,
                               ),
                       ],
@@ -676,7 +792,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 }
                               : null,
                         ),
-
                         if (previewUser != null) ...[
                           const SizedBox(height: 8),
                           Container(
@@ -694,7 +809,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   '📋 ${previewUser.activityLevelDescription}',
                                   style: const TextStyle(fontSize: 12),
                                 ),
-
                                 if (_isEditing &&
                                     _currentUserProfile != null) ...[
                                   const SizedBox(height: 8),
@@ -702,7 +816,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       _currentUserProfile!.activityLevel)
                                     _buildActivityImpactPreview(),
                                 ],
-
                                 if (previewUser.getActivityLevelWarning() !=
                                     null) ...[
                                   const SizedBox(height: 8),
@@ -799,7 +912,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
-
               if (!_isEditing &&
                   previewUser.targetWeight < previewUser.weight) ...[
                 const SizedBox(height: 16),
@@ -830,7 +942,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           'Estimasi Waktu ke Target',
                           '${previewUser.estimatedWeeksToTarget} minggu',
                         ),
-
                         const SizedBox(height: 12),
                         LinearProgressIndicator(
                           value: 0.0,
